@@ -35,3 +35,5 @@
 			git branch | while read b; do if [[ "$b" != '* master' ]];then git del $b; fi; done \
 	 };f"
 	
+   cpr = !zsh -c 'source ~/Code/myvars.zshrc && source ~/Code/gitpr.sh && gitcreateandopenpr'
+	
