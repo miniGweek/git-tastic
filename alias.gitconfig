@@ -1,0 +1,37 @@
+[alias]
+	cmp = "!f() {\
+	 CURRENTBRANCH=$(git branch --show-current); \
+	 git add -A; \
+	 git commit -m \"$@\"; \
+	 git push --set-upstream origin $CURRENTBRANCH; \
+	 };f"
+	
+	cb = checkout -b
+	co = checkout
+	s  = status
+	del= branch -d
+	br = branch --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) %(color:green)(%(committerdate:relative)) [%(authorname)]' --sort=-committerdate
+	save = !git add -A && git commit -m 'chore: commit save point'
+	ls = !git log --pretty=format:\"%C(magenta)%h%Creset -%C(red)%d%Creset %s %C(dim green)(%cr) [%an]\" --abbrev-commit -30
+	res = !git reset --hard
+	done = !git push origin HEAD
+
+	m = "!f() {\
+	 git checkout master; \
+	 git pull; \
+	 };f"
+	po = remote update origin --prune
+
+	md = "!f() {\
+	 CURRENTBRANCH=$(git branch --show-current); \
+	 git checkout master; \
+	 git pull; \
+	 git branch -D $CURRENTBRANCH; \
+	 git po; \
+	 };f"
+
+	delall = "!f() {\
+			git m;\
+			git branch | while read b; do if [[ "$b" != '* master' ]];then git del $b; fi; done \
+	 };f"
+	
