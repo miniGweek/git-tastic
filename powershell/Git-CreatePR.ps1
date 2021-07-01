@@ -6,29 +6,25 @@ function Git-CreatePR([string]$currentBranch , [string]$targetBranch = "master",
     $AzureDevOpsPAT = $env:MYVAR_AZUREDEVOPSPAT;    
     $organization = $env:MYVAR_ORGANIZATION;
     $project = $env:MYVAR_PROJECT
-    $repositoryName = $env:MYVAR_REPOSITORYNAME
     $repositoryId = $env:MYVAR_REPOSITORYID
     if ($currentBranch -eq "") {
         $currentBranch = git branch --show-current;
     }
-    # Write-Host $currentBranch
+
     $commitMsg = git log -1 --oneline $(git branch --show-current);
     $lastCommitHash = git rev-parse --short HEAD
     if ($title -eq "") {
         $title = $commitMsg.Split($lastCommitHash)[1]
     }
-    # Write-Host $title
+
     if ($description -eq "") {
         $description = $title
     }
-    # Write-Host $description
+
 
     $AzureDevOpsAuthenicationHeader = @{Authorization = 'Basic ' + [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(":$($AzureDevOpsPAT)")) }    
-
-    # $UriOrga = "https://dev.azure.com/$($OrganizationName)/" 
-    # $uriAccount = $UriOrga + "_apis/projects?api-version=5.1"
-    $PRUri = "https://dev.azure.com/$organization/$project/_apis/git/repositories/$repositoryId/pullrequests?api-version=6.0"
-    # Write-Host $PRUri
+    $PRRepositoryUri = "https://dev.azure.com/$organization/$project/_apis/git/repositories/$repositoryId";
+    $PRUri = "$PRRepositoryUri/pullrequests?api-version=6.0"
 
     $requestBody = @"
 {
@@ -38,12 +34,12 @@ function Git-CreatePR([string]$currentBranch , [string]$targetBranch = "master",
     "description":"$description"
   }
 "@
-    # Write-Host $requestBody;
-    #$result = Invoke-RestMethod -Uri $PRUri -Method Post -Headers $AzureDevOpsAuthenicationHeader  -ContentType "application/json" -Body $requestBody
+    #Write-Host $requestBody;
+    Write-Host "###... Creating the Pull Request ..."
     $jsonResponse = Invoke-WebRequest -Uri $PRUri -Method Post -Headers $AzureDevOpsAuthenicationHeader -ContentType "application/json" -Body $requestBody
     
     $result = ConvertFrom-Json($jsonResponse);
-
+    
     $shortResult = [ordered]@{title = $result.title; 
         description                 = $result.description; 
         pullRequestId               = $result.pullRequestId; 
@@ -53,5 +49,36 @@ function Git-CreatePR([string]$currentBranch , [string]$targetBranch = "master",
         targetRefName               = $result.targetRefName;
         url                         = $result.url;
     };
+
+    Write-Host "###... Setting the Auto Complete options on the Pull Request #$($shortResult.pullRequestId) ..."
+
+    Set-PullRequestCompleteOptions -PRRepositoryUri $PRRepositoryUri -PullRequestId $shortResult.pullRequestId  -TokenHeader $AzureDevOpsAuthenicationHeader -title $title
     return $shortResult;
+}
+
+Function Set-PullRequestCompleteOptions($PRRepositoryUri, $PullRequestId, $TokenHeader, $title) {
+    Write-Host "###... Initiating Update of Pullrequest #$PullRequestId ..."
+
+    $requestBody = @"
+    {
+        "autoCompleteSetBy": {
+            "id": "992a50f9-fabd-6450-8170-52f580f66340"
+        },
+        "completionOptions" : {
+            "deleteSourceBranch":"true",
+            "squashMerge":"true",
+            "mergeStrategy":"squash",
+            "mergeCommitMessage" :"Merged PR $PullRequestId`:$title",
+        }
+    }
+"@
+
+    $UpdatePRUri = "$PRRepositoryUri/pullrequests/$PullRequestId`?api-version=6.0"
+
+    Write-Host "###... Update Pull Request Uri - $UpdatePRUri ..."
+    Write-Host "###... PATCH request body: ..."
+    Write-Host $requestBody
+    Write-Host "###... End of PATCH request body: ..."
+    $jsonResponse = Invoke-WebRequest -Uri $UpdatePRUri -Method PATCH -Headers $TokenHeader -ContentType "application/json" -Body $requestBody
+    Write-Host "###... Updated Pullrequest #$PullRequestId ..."
 }

@@ -1,4 +1,4 @@
-Function Git-CreateAndOpenPR([string]$currentBranch , [string]$targetBranch = "master",
+Function Git-CreateAndOpenPR([string]$currentBranch, [string]$targetBranch = "master",
     [string]$t, [string]$d, [string]$browser = "firefox", [string]$launchBrowser = $true) {  
     $organization = $env:MYVAR_ORGANIZATION;
     $project = $env:MYVAR_PROJECT
