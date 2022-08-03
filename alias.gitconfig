@@ -1,8 +1,12 @@
 [alias]
-	cmp = "!f() {\
-	 CURRENTBRANCH=$(git branch --show-current); \
+	cm = "!f() {\
 	 git add -A; \
 	 git commit -m \"$@\"; \
+	 };f"
+
+	cmp = "!f() {\
+	 CURRENTBRANCH=$(git branch --show-current); \
+	 git cm \"$@\"; \
 	 git push --set-upstream origin $CURRENTBRANCH; \
 	 };f"
 	
@@ -12,24 +16,30 @@
 			git cb \"$@\"; \
 			git cmp \"$@\"; \
 	 };f"
-	co = checkout
+	co =  "!f() {\
+			git checkout \"$@\"; \
+			git pull; \
+	 };f"
 	s  = status
 	del= branch -d
 	br = branch --format='%(HEAD) %(color:yellow)%(refname:short)%(color:reset) - %(contents:subject) %(color:green)(%(committerdate:relative)) [%(authorname)]' --sort=-committerdate
 	save = !git add -A && git commit -m 'chore: commit save point'
 	ls = !git log --pretty=format:\"%C(magenta)%h%Creset -%C(red)%d%Creset %s %C(dim green)(%cr) [%an]\" --abbrev-commit -30
+	graph = log --all --color --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit
 	res = !git reset --hard
 	done = !git push origin HEAD
 
 	m = "!f() {\
-	 git checkout master; \
+	 MAIN=$(git remote show origin | sed -n '/HEAD branch/s/.*: //p'); \
+	 git checkout $MAIN; \
 	 git pull; \
 	 };f"
 	po = remote update origin --prune
 
 	md = "!f() {\
 	 CURRENTBRANCH=$(git branch --show-current); \
-	 git checkout master; \
+	 MAIN=$(git remote show origin | sed -n '/HEAD branch/s/.*: //p'); \
+	 git checkout $MAIN; \
 	 git pull; \
 	 git branch -D $CURRENTBRANCH; \
 	 git po; \
@@ -37,8 +47,7 @@
 
 	delall = "!f() {\
 			git m;\
-			git branch | while read b; do if [[ "$b" != '* master' ]];then git del $b; fi; done \
+			git branch | while read b; do if [[ "$b" != '* main' ]];then git del $b; fi; done \
 	 };f"
 
 	root = rev-parse --show-toplevel
-	
